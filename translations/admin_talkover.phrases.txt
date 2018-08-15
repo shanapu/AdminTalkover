@@ -1,0 +1,7 @@
+"Phrases"
+{
+	"Please be quiet"
+	{
+		"en"		"Please be quiet, the admin speaks."
+	}
+}
