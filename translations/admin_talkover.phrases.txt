@@ -4,4 +4,19 @@
 	{
 		"en"		"Please be quiet, the admin speaks."
 	}
+
+	"Plugin disabled"
+	{
+		"en"		"Plugin is disbaled by ConVar. (talkover_enable 0)"
+	}
+
+	"Talkover disabled"
+	{
+		"en"		"Admin talkover disabled"
+	}
+
+	"Talkover enabled"
+	{
+		"en"		"Admin talkover enabled"
+	}
 }

@@ -21,6 +21,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <voiceannounce_ex>
+#include <colors>
 
 // Optional Plugins
 #undef REQUIRE_PLUGIN
@@ -33,25 +34,53 @@
 #pragma newdecls required
 
 ConVar gc_bMuteTalkOver;
+ConVar gc_bDefault;
+ConVar gc_sPrefix;
 
 // Boolean
+bool g_bEnable[MAXPLAYERS+1] = {false, ...};
 bool g_bTempMuted[MAXPLAYERS+1] = {false, ...};
 bool gp_bBasecomm = false;
 bool gp_bSourceComms = false;
+
+char g_sPrefix[64];
 
 public Plugin myinfo = {
 	name = "Admin talkover",
 	author = "shanapu",
 	description = "Please be quiet, the Admin speaks",
-	version = "1.0",
+	version = "1.1",
 	url = "https://github.com/shanapu/AdminTalkover"
 };
 
 public void OnPluginStart()
 {
 	LoadTranslations("admin_talkover.phrases");
-	CreateConVar("talkover_version", "1.0", "Version of this SourceMod plugin", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	LoadTranslations("common.phrases");
+
+	RegAdminCmd("sm_talkover", Command_TalkOver, ADMFLAG_CHAT, "Toggle on/off admin talkover");
+
+	CreateConVar("talkover_version", "1.1", "Version of this SourceMod plugin", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	gc_bMuteTalkOver = CreateConVar("talkover_enable", "1", "0 - disabled, 1 - enable plugin", _, true, 0.0, true, 1.0);
+	gc_bDefault = CreateConVar("talkover_default", "1", "0 - disabled by default use command to enable, 1 - enabled by default use command to disable", _, true, 0.0, true, 1.0);
+	gc_sPrefix = CreateConVar("talkover_prefix", "[SM]", "Set your chat prefix for this plugin.");
+
+	AutoExecConfig(true, "admin_talkover", "sourcemod");
+
+	HookConVarChange(gc_sPrefix, OnSettingChanged);
+}
+
+public void OnSettingChanged(Handle convar, const char[] oldValue, const char[] newValue)
+{
+	if (convar == gc_sPrefix)
+	{
+		strcopy(g_sPrefix, sizeof(g_sPrefix), newValue);
+	}
+}
+
+public void OnConfigsExecuted()
+{
+	gc_sPrefix.GetString(g_sPrefix, sizeof(g_sPrefix));
 }
 
 public void OnAllPluginsLoaded()
@@ -84,12 +113,49 @@ public void OnLibraryAdded(const char[] name)
 	}
 }
 
+public void OnClientPostAdminCheck(int client)
+{
+	g_bEnable[client] = gc_bDefault.BoolValue;
+}
+
+public Action Command_TalkOver(int client, int args)
+{
+	if (client == 0)
+	{
+		CReplyToCommand(client, "%s %t", g_sPrefix, "Command is in-game only");
+
+		return Plugin_Handled;
+	}
+
+	if (!gc_bMuteTalkOver.BoolValue)
+	{
+		CReplyToCommand(client, "%s %t", g_sPrefix, "Plugin disabled");
+
+		return Plugin_Handled;
+	}
+
+	if (g_bEnable[client])
+	{
+		g_bEnable[client] = false;
+
+		CReplyToCommand(client, "%s %t", g_sPrefix, "Talkover disabled");
+	}
+	else
+	{
+		g_bEnable[client] = true;
+
+		CReplyToCommand(client, "%s %t", g_sPrefix, "Talkover enabled");
+	}
+
+	return Plugin_Handled;
+}
+
 public void OnClientSpeakingEx(int client)
 {
-	if (!gc_bMuteTalkOver.BoolValue)
+	if (!gc_bMuteTalkOver.BoolValue || !g_bEnable[client])
 		return;
 
-	if (CheckCommandAccess(client, "talkover_access", ADMFLAG_CHAT, false))
+	if (CheckCommandAccess(client, "sm_talkover", ADMFLAG_CHAT, false))
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
@@ -118,10 +184,10 @@ public void OnClientSpeakingEx(int client)
 
 public void OnClientSpeakingEnd(int client)
 {
-	if (!gc_bMuteTalkOver.BoolValue)
+	if (!gc_bMuteTalkOver.BoolValue || !g_bEnable[client])
 		return;
 
-	if (!CheckCommandAccess(client, "talkover_access", ADMFLAG_CHAT, false))
+	if (!CheckCommandAccess(client, "sm_talkover", ADMFLAG_CHAT, false))
 		return;
 
 	for (int i = 1; i <= MaxClients; i++)
