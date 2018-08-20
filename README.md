@@ -3,10 +3,10 @@ AdminTalkover
 need [ANY] VoiceannounceEX (VoiceHook)  
 https://forums.alliedmods.net/showthread.php?p=2177167?p=2177167  
     
-Command
+Command  
 `sm_talkover - Toggle on/off admin talkover`
 
-ConVar
+ConVar  
 ```
 talkover_enable - 0 - disabled, 1 - enable plugin
 talkover_default - 0 - disabled by default use command to enable, 1 - enabled by default use command to disable
